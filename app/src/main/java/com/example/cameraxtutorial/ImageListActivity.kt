@@ -2,13 +2,18 @@ package com.example.cameraxtutorial
 
 import android.app.Activity
 import android.content.Intent
+import android.media.MediaScannerConnection
 import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.viewpager2.widget.ViewPager2
 import com.example.cameraxtutorial.adapter.ImageViewPagerAdapter
 import com.example.cameraxtutorial.databinding.ActivityImageListBinding
 import com.example.cameraxtutorial.databinding.ActivityMainBinding
+import com.example.cameraxtutorial.util.PathUtil
+import java.io.File
+import java.io.FileNotFoundException
 
 class ImageListActivity : AppCompatActivity() {
 
@@ -51,5 +56,30 @@ class ImageListActivity : AppCompatActivity() {
                 toolbar.title = getString(R.string.images_page, position + 1, imageViewPagerAdapter.uriList.size)
             }
         })
+        binding.deleteButton.setOnClickListener {
+            removeImage(uriList[imageViewPager.currentItem])
+        }
+    }
+
+    private fun removeImage(uri: Uri) {
+        try {
+            val file = File(PathUtil.getPath(this, uri) ?: throw FileNotFoundException())
+            file.delete()
+            imageViewPagerAdapter.uriList.let {
+                val imageList = it.toMutableList()
+                imageList.remove(uri)
+                imageViewPagerAdapter.uriList = imageList
+                imageViewPagerAdapter.notifyDataSetChanged()
+            }
+            MediaScannerConnection.scanFile(this, arrayOf(file.path), arrayOf("image/jpeg"), null)
+            binding.indicator.setViewPager(binding.imageViewPager)
+            if (imageViewPagerAdapter.uriList.isEmpty()) {
+                Toast.makeText(this, "삭제할 수 있는 이미지가 없습니다.", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, "이미지가 존재하지 않습니다.", Toast.LENGTH_SHORT).show()
+        }
     }
 }
